@@ -19,7 +19,6 @@ public class SpringBootSecurityDemoApplication {
 		SpringApplication.run(SpringBootSecurityDemoApplication.class, args);
 	}
 	@Bean
-	//
 	CommandLineRunner initAdmin(RoleDaoImpl roleDao, Serviсe userService) {
 		return args -> {
 			if (userService.getAllUsers().isEmpty()) {

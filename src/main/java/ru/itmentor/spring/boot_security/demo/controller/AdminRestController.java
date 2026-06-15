@@ -12,15 +12,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import ru.itmentor.spring.boot_security.demo.dao.RoleDaoImpl;
 import ru.itmentor.spring.boot_security.demo.dto.UserDto;
 import ru.itmentor.spring.boot_security.demo.dto.UserRequest;
-import ru.itmentor.spring.boot_security.demo.model.Roles;
 import ru.itmentor.spring.boot_security.demo.model.User;
 import ru.itmentor.spring.boot_security.demo.serviсe.Serviсe;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Tag(name = "Admin REST", description = "REST API для Admin панели")
@@ -29,11 +26,9 @@ import java.util.stream.Collectors;
 public class AdminRestController {
 
     private final Serviсe userService;
-    private final RoleDaoImpl roleDaoImpl;
 
-    public AdminRestController(Serviсe userService, RoleDaoImpl roleDaoImpl) {
+    public AdminRestController(Serviсe userService) {
         this.userService = userService;
-        this.roleDaoImpl = roleDaoImpl;
     }
 
     @Operation(summary = "Получить всех пользователей")
@@ -48,57 +43,27 @@ public class AdminRestController {
     @Operation(summary = "Получить пользователя")
     @GetMapping("/users/{id}")
     public ResponseEntity<UserDto> getUser(@PathVariable long id) {
-        User user = userService.getUser(id);
+        UserDto user = userService.getUserDto(id);
         if (user == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(new UserDto(user));
+        return ResponseEntity.ok(user);
     }
 
     @Operation(summary = "Создать нового пользователя")
     @PostMapping("/users")
     public ResponseEntity<UserDto> createUser(@RequestBody UserRequest request) {
-        User user = new User(
-                request.getUsername(),
-                request.getPassword(),
-                request.getFirstName(),
-                request.getLastName(),
-                request.getYear()
-        );
-        if (request.getRoles() != null) {
-            Set<Roles> roles = request.getRoles().stream()
-                    .map(name -> roleDaoImpl.findByName(name))
-                    .collect(Collectors.toSet());
-            user.setRoles(roles);
-        }
-        userService.saveUser(user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(new UserDto(user));
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(request));
     }
 
     @Operation(summary = "Обновить пользователя")
     @PutMapping("/users/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable long id, @RequestBody UserRequest request) {
-        User existing = userService.getUser(id);
-        if (existing == null) {
+        UserDto user = userService.updateUser(id, request);
+        if (user == null) {
             return ResponseEntity.notFound().build();
         }
-        User updateUser = new User(
-                existing.getUsername(),
-                existing.getPassword(),
-                request.getFirstName(),
-                request.getLastName(),
-                request.getYear()
-        );
-        updateUser.setId(id);
-        if (request.getRoles() != null) {
-            Set<Roles> roles = request.getRoles().stream()
-                    .map(Roles::new)
-                    .collect(Collectors.toSet());
-            updateUser.setRoles(roles);
-        }
-        userService.updateUser(updateUser);
-        User updated = userService.getUser(id);
-        return ResponseEntity.ok(new UserDto(updated));
+        return ResponseEntity.ok(user);
     }
 
     @Operation(summary = "Удалить пользователя по ID")
